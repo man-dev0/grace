@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.googleapis.com https://*.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
+<title>EPL LA SAINTE GRACE</title>
+<link rel="stylesheet" href="style.css">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<!-- PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.3/jspdf.plugin.autotable.min.js"></script>
+<!-- Charts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     ETAPE 1 — CHOIX DU ROLE
+════════════════════════════════════════ -->
+<div id="screen-role" class="auth-screen">
+  <div class="auth-box">
+    <img src="logo.png" alt="Logo" class="auth-logo">
+    <h2>EPL LA SAINTE GRACE</h2>
+    <p>Selectionnez votre profil</p>
+    <div class="role-btns">
+      <button class="role-btn" onclick="selectRole('directeur')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><polyline points="16 3 18 5 22 1"/></svg>
+        Directeur
+        <span>Acces complet</span>
+      </button>
+      <button class="role-btn" onclick="selectRole('comptable')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="13" y2="14"/><line x1="2" y1="7" x2="22" y2="7"/></svg>
+        Comptable
+        <span>Paiements</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ETAPE 2 — MOT DE PASSE
+════════════════════════════════════════ -->
+<div id="screen-pass" class="auth-screen hidden">
+  <div class="auth-box">
+    <img src="logo.png" alt="Logo" class="auth-logo">
+    <div id="role-badge-pass" class="role-badge"></div>
+    <div class="step-label">
+      <span class="step-dot active"></span><span class="step-dot"></span>
+      Etape 1 / 2 — Mot de passe
+    </div>
+    <h2>Mot de passe</h2>
+    <p>Entrez votre mot de passe</p>
+    <input type="password" class="auth-input" id="inp-pass" placeholder="Mot de passe" onkeydown="if(event.key==='Enter')checkPass()">
+    <button class="btn-full" onclick="checkPass()">Continuer</button>
+    <br><button class="back-link" onclick="backToRole()">Changer de profil</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ETAPE 3 — CODE PIN
+════════════════════════════════════════ -->
+<div id="screen-pin" class="auth-screen hidden">
+  <div class="auth-box">
+    <img src="logo.png" alt="Logo" class="auth-logo">
+    <div id="role-badge-pin" class="role-badge"></div>
+    <div class="step-label">
+      <span class="step-dot"></span><span class="step-dot active"></span>
+      Etape 2 / 2 — Code PIN
+    </div>
+    <h2>Code PIN</h2>
+    <p>Entrez votre code PIN a 4 chiffres</p>
+    <div class="pin-row">
+      <input class="pin-input" type="password" maxlength="1" id="p0" inputmode="numeric" oninput="pinNext(0)">
+      <input class="pin-input" type="password" maxlength="1" id="p1" inputmode="numeric" oninput="pinNext(1)">
+      <input class="pin-input" type="password" maxlength="1" id="p2" inputmode="numeric" oninput="pinNext(2)">
+      <input class="pin-input" type="password" maxlength="1" id="p3" inputmode="numeric" oninput="pinNext(3)">
+    </div>
+    <button class="btn-full" onclick="checkPin()">Acceder</button>
+    <br><button class="back-link" onclick="backToPass()">Retour</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APPLICATION PRINCIPALE
+════════════════════════════════════════ -->
+<div id="app" class="app hidden">
+  <div class="mob-overlay" id="mob-ov" onclick="closeSB()"></div>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <h1>Gestion des Ecolages</h1>
+      <p>EPL LA SAINTE GRACE</p>
+      <div id="sb-role-badge" class="sb-role-badge"></div>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-lbl">Navigation</div>
+      <button class="nb active" id="nav-dashboard" onclick="go('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Tableau de bord
+      </button>
+      <button class="nb" id="nav-eleves" onclick="go('eleves')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Eleves
+      </button>
+      <button class="nb" id="nav-classes" onclick="go('classes')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Classes
+      </button>
+      <button class="nb" id="nav-paiements" onclick="go('paiements')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Paiements
+      </button>
+      <button class="nb" id="nav-historique" onclick="go('historique')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Historique
+      </button>
+      <button class="nb dir-only" id="nav-insolvables" onclick="go('insolvables')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Insolvables
+      </button>
+    </div>
+    <div class="sb-bottom">
+      <button class="nb-out" onclick="logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Deconnexion
+      </button>
+      <div class="powered">Powered by FIAGNON Kodjo Emmanuel</div>
+    </div>
+  </nav>
+
+  <!-- CONTENU PRINCIPAL -->
+  <div class="main">
+    <div class="topbar">
+      <button class="hbg" onclick="openSB()"><span></span><span></span><span></span></button>
+      <div><h2 id="pg-title">Tableau de bord</h2><p id="pg-sub">Vue d'ensemble financiere</p></div>
+      <div style="width:24px"></div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page">
+      <div class="stats-grid" id="dash-stats"></div>
+      <div class="card">
+        <div class="card-title">Derniers paiements enregistres</div>
+        <div id="dash-last"></div>
+      </div>
+    </div>
+
+    <!-- ELEVES -->
+    <div id="page-eleves" class="page hidden">
+      <div class="card">
+        <div class="card-title">Ajouter un eleve</div>
+        <div class="fg">
+          <div class="fl"><label>Nom *</label><input id="e-nom" placeholder="Nom"></div>
+          <div class="fl"><label>Prenom *</label><input id="e-prenom" placeholder="Prenom"></div>
+          <div class="fl"><label>Age</label><input id="e-age" type="number" placeholder="Age"></div>
+          <div class="fl"><label>Classe *</label>
+            <select id="e-classe"><option value="">-- Choisir --</option>
+              <optgroup label="Primaire">
+                <option>CP1-A</option><option>CP1-B</option>
+                <option>CP2-A</option><option>CP2-B</option>
+                <option>CE1-A</option><option>CE1-B</option>
+                <option>CE2-A</option><option>CE2-B</option>
+                <option>CM1-A</option><option>CM1-B</option>
+                <option>CM2-A</option><option>CM2-B</option>
+              </optgroup>
+              <optgroup label="College">
+                <option>6eme</option><option>5eme</option><option>4eme</option><option>3eme</option>
+              </optgroup>
+              <optgroup label="Lycee">
+                <option>2nde</option><option>1ere</option><option>Terminale</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="fl"><label>Ecolage total (FCFA) *</label><input id="e-montant" type="number" placeholder="Ex: 45000"></div>
+          <div class="fl"><label>Nom Parent 1</label><input id="e-parent1" placeholder="Nom parent 1"></div>
+          <div class="fl"><label>Tel. Parent 1</label><input id="e-tel1" placeholder="Telephone parent 1"></div>
+          <div class="fl"><label>Nom Parent 2</label><input id="e-parent2" placeholder="Nom parent 2"></div>
+          <div class="fl"><label>Tel. Parent 2</label><input id="e-tel2" placeholder="Telephone parent 2"></div>
+        </div>
+        <div class="btn-row">
+          <button onclick="saveEleve()">Enregistrer</button>
+          <button class="btn-ghost" onclick="clearEleve()">Effacer</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Liste des eleves</div>
+        <div class="srow"><input class="si" id="elv-search" placeholder="Rechercher par nom, prenom ou classe..." oninput="filterEleves()"></div>
+        <div style="overflow-x:auto"><table class="dt">
+          <thead><tr><th>Eleve</th><th>Age</th><th>Classe</th><th>Ecolage</th><th>Paye</th><th>Reste</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="elv-list"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- CLASSES -->
+    <div id="page-classes" class="page hidden">
+      <div class="class-btn-grid" id="class-btn-grid"></div>
+      <div id="class-detail" class="hidden">
+        <div class="class-detail-header">
+          <button class="btn-ghost" onclick="closeClassDetail()">Retour aux classes</button>
+          <h3 id="class-detail-title"></h3>
+          <button class="btn-gold" onclick="printClassePDF()">Imprimer la liste</button>
+        </div>
+        <div class="stats-grid" id="class-stats"></div>
+        <div class="charts-row">
+          <div class="card chart-card"><div class="card-title">Repartition des paiements</div><canvas id="chart-pie"></canvas></div>
+          <div class="card chart-card"><div class="card-title">Montants (FCFA)</div><canvas id="chart-bar"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Eleves de la classe</div>
+          <div class="srow"><input class="si" id="class-search" placeholder="Rechercher dans la classe..." oninput="filterClassEleves()"></div>
+          <div style="overflow-x:auto"><table class="dt" id="class-table">
+            <thead><tr>
+              <th class="sortable" onclick="sortClass('nom')">Nom</th>
+              <th class="sortable" onclick="sortClass('prenom')">Prenom</th>
+              <th class="sortable" onclick="sortClass('age')">Age</th>
+              <th class="sortable" onclick="sortClass('paye')">Paye</th>
+              <th class="sortable" onclick="sortClass('reste')">Reste</th>
+              <th>Tel. Parent 1</th><th>Tel. Parent 2</th>
+            </tr></thead>
+            <tbody id="class-elv-list"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAIEMENTS -->
+    <div id="page-paiements" class="page hidden">
+      <div class="card">
+        <div class="card-title">Enregistrer un paiement</div>
+        <div class="srow">
+          <input class="si" id="pay-search" placeholder="Rechercher un eleve..." oninput="filterPaySearch()">
+        </div>
+        <div id="pay-search-res"></div>
+        <div id="pay-form" class="hidden">
+          <div class="info-box" id="pay-elv-info"></div>
+          <div class="fg fg3">
+            <div class="fl"><label>Montant verse (FCFA) *</label><input id="pay-montant" type="number" placeholder="Ex: 15000"></div>
+            <div class="fl"><label>Mode de paiement</label>
+              <select id="pay-mode"><option>Cash</option><option>Mobile Money</option><option>Virement</option></select>
+            </div>
+            <div class="fl"><label>Date</label><input type="date" id="pay-date"></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-green" onclick="savePaiement()">Valider le paiement</button>
+            <button class="btn-ghost" onclick="cancelPay()">Annuler</button>
+          </div>
+          <div id="receipt-area"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Historique des paiements</div>
+        <div class="srow">
+          <input class="si" id="hist-search" placeholder="Filtrer par nom ou classe..." oninput="filterHist()">
+          <button class="btn-gold" onclick="exportHistPDF()">Exporter PDF</button>
+        </div>
+        <div style="overflow-x:auto"><table class="dt">
+          <thead><tr><th>N° Recu</th><th>Eleve</th><th>Classe</th><th>Montant</th><th>Mode</th><th>Date</th><th>Heure</th><th>Recu</th></tr></thead>
+          <tbody id="hist-list"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- HISTORIQUE PAR ELEVE -->
+    <div id="page-historique" class="page hidden">
+      <div class="card">
+        <div class="card-title">Historique d'un eleve</div>
+        <div class="srow">
+          <input class="si" id="histo-search" placeholder="Rechercher un eleve..." oninput="filterHistoSearch()">
+        </div>
+        <div id="histo-search-res"></div>
+      </div>
+      <div id="histo-detail" class="hidden">
+        <div class="card">
+          <div class="card-title">Fiche de l'eleve</div>
+          <div id="histo-fiche"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Paiements de cet eleve</div>
+          <div style="overflow-x:auto"><table class="dt">
+            <thead><tr><th>N° Recu</th><th>Date</th><th>Heure</th><th>Montant</th><th>Mode</th><th>Impression</th></tr></thead>
+            <tbody id="histo-pay-list"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSOLVABLES -->
+    <div id="page-insolvables" class="page hidden">
+      <div class="card">
+        <div class="card-title">Eleves insolvables ou partiellement regles</div>
+        <div style="overflow-x:auto"><table class="dt">
+          <thead><tr><th>Eleve</th><th>Age</th><th>Classe</th><th>Ecolage</th><th>Paye</th><th>Reste</th><th>Parent 1</th><th>Tel 1</th><th>Parent 2</th><th>Tel 2</th><th>Statut</th></tr></thead>
+          <tbody id="insolv-list"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- PANEL LATERAL (modifier eleve) -->
+<div class="sp-overlay" id="sp-ov" onclick="closeSP()"></div>
+<div id="side-panel">
+  <div class="sp-head"><h3 id="sp-title">Modifier l'eleve</h3><button class="sp-close" onclick="closeSP()">x</button></div>
+  <div class="sp-body">
+    <input type="hidden" id="edit-id">
+    <div class="fg">
+      <div class="fl"><label>Nom *</label><input id="ed-nom"></div>
+      <div class="fl"><label>Prenom *</label><input id="ed-prenom"></div>
+      <div class="fl"><label>Age</label><input id="ed-age" type="number"></div>
+      <div class="fl"><label>Classe *</label>
+        <select id="ed-classe">
+          <optgroup label="Primaire">
+            <option>CP1-A</option><option>CP1-B</option>
+            <option>CP2-A</option><option>CP2-B</option>
+            <option>CE1-A</option><option>CE1-B</option>
+            <option>CE2-A</option><option>CE2-B</option>
+            <option>CM1-A</option><option>CM1-B</option>
+            <option>CM2-A</option><option>CM2-B</option>
+          </optgroup>
+          <optgroup label="College">
+            <option>6eme</option><option>5eme</option><option>4eme</option><option>3eme</option>
+          </optgroup>
+          <optgroup label="Lycee">
+            <option>2nde</option><option>1ere</option><option>Terminale</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="fl"><label>Ecolage (FCFA) *</label><input id="ed-montant" type="number"></div>
+      <div class="fl"><label>Nom Parent 1</label><input id="ed-parent1"></div>
+      <div class="fl"><label>Tel. Parent 1</label><input id="ed-tel1"></div>
+      <div class="fl"><label>Nom Parent 2</label><input id="ed-parent2"></div>
+      <div class="fl"><label>Tel. Parent 2</label><input id="ed-tel2"></div>
+    </div>
+    <div class="btn-row">
+      <button onclick="saveEdit()">Enregistrer</button>
+      <button class="btn-ghost" onclick="closeSP()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
