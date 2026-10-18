@@ -24,6 +24,7 @@ const CREDS = {
 
 // ── LISTES DE CLASSES ───────────────────────────────
 const CLASSES = [
+  "CI1","CI2",
   "CP1-A","CP1-B",
   "CP2-A","CP2-B",
   "CE1-A","CE1-B",
@@ -604,7 +605,7 @@ function printReceipt(nom, classe, date, heure, mode, total, verse, reste, numRe
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
-    doc.text("EPL LA SAINTE GRACE", x + 22, 15);
+    doc.text("GESTION DES ECOLAGES", x + 22, 15);
     doc.setFontSize(8);
     doc.setFont(undefined, 'normal');
     doc.text("Etablissement scolaire", x + 22, 20);
