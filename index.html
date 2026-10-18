@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://*.googleapis.com https://*.gstatic.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';">
-<title>EPL LA SAINTE GRACE</title>
+<title>Gestion des Ecolages</title>
 <link rel="stylesheet" href="style.css">
 
 <!-- Firebase -->
@@ -24,7 +24,7 @@
 <div id="screen-role" class="auth-screen">
   <div class="auth-box">
     <img src="logo.png" alt="Logo" class="auth-logo">
-    <h2>EPL LA SAINTE GRACE</h2>
+    <h2>Gestion des Ecolages</h2>
     <p>Selectionnez votre profil</p>
     <div class="role-btns">
       <button class="role-btn" onclick="selectRole('directeur')">
@@ -94,7 +94,7 @@
   <nav class="sidebar" id="sidebar">
     <div class="sb-brand">
       <h1>Gestion des Ecolages</h1>
-      <p>EPL LA SAINTE GRACE</p>
+      <p>Etablissement scolaire</p>
       <div id="sb-role-badge" class="sb-role-badge"></div>
     </div>
     <div class="sb-nav">
@@ -160,6 +160,9 @@
           <div class="fl"><label>Age</label><input id="e-age" type="number" placeholder="Age"></div>
           <div class="fl"><label>Classe *</label>
             <select id="e-classe"><option value="">-- Choisir --</option>
+              <optgroup label="Maternelle">
+                <option>CI1</option><option>CI2</option>
+              </optgroup>
               <optgroup label="Primaire">
                 <option>CP1-A</option><option>CP1-B</option>
                 <option>CP2-A</option><option>CP2-B</option>
@@ -316,6 +319,9 @@
       <div class="fl"><label>Age</label><input id="ed-age" type="number"></div>
       <div class="fl"><label>Classe *</label>
         <select id="ed-classe">
+          <optgroup label="Maternelle">
+            <option>CI1</option><option>CI2</option>
+          </optgroup>
           <optgroup label="Primaire">
             <option>CP1-A</option><option>CP1-B</option>
             <option>CP2-A</option><option>CP2-B</option>
