@@ -59,6 +59,24 @@ const now = ()  => new Date();
 function fmtDate(d)  { return d ? d.toLocaleDateString('fr-FR')  : '—'; }
 function fmtHeure(d) { return d ? d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—'; }
 
+// Calcule l'age en annees a partir d'une date de naissance (format YYYY-MM-DD)
+function calcAge(dateNaissance) {
+  if (!dateNaissance) return '—';
+  const dob  = new Date(dateNaissance);
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age >= 0 ? age + ' ans' : '—';
+}
+
+// Formater une date YYYY-MM-DD en DD/MM/YYYY pour affichage
+function fmtDOB(dateStr) {
+  if (!dateStr) return '—';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 // ── NUMÉRO DE REÇU ──────────────────────────────────
 async function genNumRecu() {
   const year  = now().getFullYear();
@@ -210,9 +228,10 @@ async function loadAllData() {
       return tb - ta;
     });
     allEleves = elevSnap.docs.map(doc => {
-      const d = doc.data();
+      const d    = doc.data();
       const paye = payMap[doc.id] || 0;
-      return { id: doc.id, ...d, paye, reste: Number(d.montant || 0) - paye };
+      const age  = calcAge(d.dateNaissance); // recalculé en temps réel à chaque chargement
+      return { id: doc.id, ...d, age, paye, reste: Number(d.montant || 0) - paye };
     }).sort((a, b) => (a.nom || "").localeCompare(b.nom || ""));
   } catch(err) {
     console.error("Erreur Firebase:", err);
@@ -262,7 +281,8 @@ async function saveEleve() {
   if (!n || !p || !cl || !m) { alert("Champs obligatoires manquants"); return; }
 
   await db.collection("eleves").add({
-    nom: n, prenom: p, age: $('e-age').value.trim(),
+    nom: n, prenom: p,
+    dateNaissance: $('e-dob').value || '',
     classe: cl, montant: Number(m),
     parent1: $('e-parent1').value.trim(), tel1: $('e-tel1').value.trim(),
     parent2: $('e-parent2').value.trim(), tel2: $('e-tel2').value.trim(),
@@ -274,7 +294,7 @@ async function saveEleve() {
 }
 
 function clearEleve() {
-  ['e-nom','e-prenom','e-age','e-montant','e-parent1','e-tel1','e-parent2','e-tel2'].forEach(id => $(id).value = '');
+  ['e-nom','e-prenom','e-dob','e-montant','e-parent1','e-tel1','e-parent2','e-tel2'].forEach(id => $(id).value = '');
   $('e-classe').value = '';
 }
 
@@ -294,7 +314,7 @@ function renderEleves(list) {
         : '<span class="badge b-red">Non paye</span>';
     return `<tr>
       <td><div class="pn">${d.nom} ${d.prenom}</div><div class="ps">${d.parent1||''}</div></td>
-      <td>${d.age||'—'}</td><td>${d.classe}</td>
+      <td>${d.dateNaissance ? fmtDOB(d.dateNaissance) + '<br><small style="color:var(--muted)">' + d.age + '</small>' : '—'}</td><td>${d.classe}</td>
       <td>${fmtMoney(d.montant)}</td>
       <td style="color:var(--green);font-weight:600">${fmtMoney(d.paye)}</td>
       <td style="color:${d.reste>0?'var(--red)':'var(--green)'};font-weight:600">${fmtMoney(d.reste)}</td>
@@ -328,7 +348,7 @@ function openEditPanel(id) {
   $('edit-id').value   = id;
   $('ed-nom').value    = e.nom    || '';
   $('ed-prenom').value = e.prenom || '';
-  $('ed-age').value    = e.age    || '';
+  $('ed-dob').value    = e.dateNaissance || '';
   $('ed-classe').value = e.classe || '';
   $('ed-montant').value= e.montant|| '';
   $('ed-parent1').value= e.parent1|| '';
@@ -347,7 +367,8 @@ async function saveEdit() {
   if (!n || !p || !cl || !m) { alert("Champs obligatoires manquants"); return; }
 
   await db.collection("eleves").doc(id).update({
-    nom: n, prenom: p, age: $('ed-age').value.trim(),
+    nom: n, prenom: p,
+    dateNaissance: $('ed-dob').value || '',
     classe: cl, montant: Number(m),
     parent1: $('ed-parent1').value.trim(), tel1: $('ed-tel1').value.trim(),
     parent2: $('ed-parent2').value.trim(), tel2: $('ed-tel2').value.trim()
@@ -432,7 +453,7 @@ function renderClassEleves(list) {
   $('class-elv-list').innerHTML = list.map(d => `<tr>
     <td><div class="pn">${d.nom}</div></td>
     <td>${d.prenom}</td>
-    <td>${d.age||'—'}</td>
+    <td>${d.dateNaissance ? fmtDOB(d.dateNaissance) + ' (' + d.age + ')' : '—'}</td>
     <td style="color:var(--green);font-weight:600">${fmtMoney(d.paye)}</td>
     <td style="color:${d.reste>0?'var(--red)':'var(--green)'};font-weight:600">${fmtMoney(d.reste)}</td>
     <td>${d.tel1||'—'}</td>
@@ -782,7 +803,8 @@ async function showHistoEleve(id) {
       <div class="fiche-row"><span class="fiche-lbl">Nom</span><span class="fiche-val">${e.nom}</span></div>
       <div class="fiche-row"><span class="fiche-lbl">Prenom</span><span class="fiche-val">${e.prenom}</span></div>
       <div class="fiche-row"><span class="fiche-lbl">Classe</span><span class="fiche-val">${e.classe}</span></div>
-      <div class="fiche-row"><span class="fiche-lbl">Age</span><span class="fiche-val">${e.age||'—'}</span></div>
+      <div class="fiche-row"><span class="fiche-lbl">Date de naissance</span><span class="fiche-val">${fmtDOB(e.dateNaissance)}</span></div>
+      <div class="fiche-row"><span class="fiche-lbl">Age actuel</span><span class="fiche-val">${e.age||'—'}</span></div>
       <div class="fiche-row"><span class="fiche-lbl">Parent 1</span><span class="fiche-val">${e.parent1||'—'}</span></div>
       <div class="fiche-row"><span class="fiche-lbl">Tel. Parent 1</span><span class="fiche-val">${e.tel1||'—'}</span></div>
       <div class="fiche-row"><span class="fiche-lbl">Parent 2</span><span class="fiche-val">${e.parent2||'—'}</span></div>
@@ -831,7 +853,7 @@ async function loadInsolvables() {
   if (!list.length) { $('insolv-list').innerHTML = '<tr><td colspan="11" class="empty">Aucun insolvable. Bravo !</td></tr>'; return; }
   $('insolv-list').innerHTML = list.map(d => `<tr>
     <td><div class="pn">${d.nom} ${d.prenom}</div></td>
-    <td>${d.age||'—'}</td><td>${d.classe}</td>
+    <td>${d.dateNaissance ? fmtDOB(d.dateNaissance) + ' (' + d.age + ')' : '—'}</td><td>${d.classe}</td>
     <td>${fmtMoney(d.montant)}</td>
     <td style="color:var(--green);font-weight:600">${fmtMoney(d.paye)}</td>
     <td style="color:var(--red);font-weight:700">${fmtMoney(d.reste)}</td>
